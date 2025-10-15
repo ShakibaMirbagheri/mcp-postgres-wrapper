@@ -1,0 +1,47 @@
+services:
+  # PostgreSQL Database
+  mcp-postgres-db:
+    image: postgres:15-alpine
+    container_name: mcp-postgres-db
+    environment:
+      - POSTGRES_PASSWORD=demo123
+      - POSTGRES_USER=demouser
+      - POSTGRES_DB=demodb
+    ports:
+      - "5433:5432"
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demouser -d demodb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MCP Wrapper Service
+  postgres-mcp-server:
+    build: .
+    container_name: postgres-mcp-server
+    environment:
+      - POSTGRES_HOST=mcp-postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=demouser
+      - POSTGRES_PASSWORD=demo123
+      - POSTGRES_DB=demodb
+    ports:
+      - "8100:8100"
+    depends_on:
+      mcp-postgres-db:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  mcp-network:
+    external: true
+    name: poc-mcp-system-java-creator_mcp-network
+
