@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: postgres-mcp-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: postgres-mcp.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: postgres-mcp-server
+            port:
+              number: 8100
+  tls:
+  - hosts:
+    - postgres-mcp.yourdomain.com
+    secretName: postgres-mcp-tls
+

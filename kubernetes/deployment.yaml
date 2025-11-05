@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-mcp-server
+  namespace: default
+  labels:
+    app: postgres-mcp-server
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-mcp-server
+  template:
+    metadata:
+      labels:
+        app: postgres-mcp-server
+        version: v1
+    spec:
+      containers:
+      - name: postgres-mcp-server
+        image: ghcr.io/YOUR_GITHUB_USERNAME/mcp-postgres-wrapper:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8100
+          name: http
+          protocol: TCP
+        env:
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-mcp-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-mcp-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-mcp-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-mcp-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-mcp-secret
+              key: POSTGRES_PASSWORD
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8100
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8100
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      restartPolicy: Always
+

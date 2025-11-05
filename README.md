@@ -54,19 +54,35 @@ Get schema information for a specific table.
 ### Prerequisites
 
 - Docker and Docker Compose
-- PostgreSQL database (or use the included one)
+- An existing PostgreSQL database (the server will connect to your database)
 
-### 1. Start the Server
+### 1. Configure Database Connection
+
+Copy the sample environment file and configure your PostgreSQL connection:
+
+```bash
+cp env.sample .env
+```
+
+Edit `.env` with your PostgreSQL credentials:
+
+```bash
+POSTGRES_HOST=your_postgres_host
+POSTGRES_PORT=5432
+POSTGRES_DB=your_database_name
+POSTGRES_USER=your_username
+POSTGRES_PASSWORD=your_password
+```
+
+### 2. Start the Server
 
 ```bash
 docker compose up -d
 ```
 
-This starts two services:
-- `mcp-postgres-db` - PostgreSQL database (port 5433)
-- `postgres-mcp-server` - MCP server (port 8100)
+This starts the MCP server on port 8100.
 
-### 2. Verify It's Running
+### 3. Verify It's Running
 
 ```bash
 # Check health
@@ -91,28 +107,31 @@ curl -X POST http://localhost:8100/mcp \
 
 ### Environment Variables
 
-Edit the `docker-compose.yml` to configure:
+The server requires a `.env` file with the following PostgreSQL connection settings:
 
-```yaml
-postgres-mcp-server:
-  environment:
-    # Database connection
-    POSTGRES_HOST: mcp-postgres-db
-    POSTGRES_PORT: 5432
-    POSTGRES_USER: demouser
-    POSTGRES_PASSWORD: demo123
-    POSTGRES_DB: demodb
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `POSTGRES_HOST` | PostgreSQL server hostname or IP | `localhost` or `192.168.1.100` |
+| `POSTGRES_PORT` | PostgreSQL server port | `5432` |
+| `POSTGRES_DB` | Database name | `your_database` |
+| `POSTGRES_USER` | Database username | `postgres` |
+| `POSTGRES_PASSWORD` | Database password | `your_secure_password` |
+
+**Important:** Create your `.env` file from the provided `env.sample`:
+
+```bash
+cp env.sample .env
+# Then edit .env with your actual credentials
 ```
 
 ### Database Connection
 
-The server connects to PostgreSQL using these settings (configured via environment variables):
+The server connects to your existing PostgreSQL database using the credentials specified in the `.env` file. Make sure:
 
-- **Host:** `mcp-postgres-db` (Docker service name) or your PostgreSQL host
-- **Port:** `5432` (internal) / `5433` (external)
-- **Database:** `demodb`
-- **User:** `demouser`
-- **Password:** `demo123`
+1. Your PostgreSQL server is accessible from the Docker container
+2. The user has appropriate permissions on the database
+3. Firewall rules allow the connection
+4. If PostgreSQL is on the same host, use `host.docker.internal` instead of `localhost`
 
 ## Usage with AI Agents
 
@@ -126,7 +145,7 @@ from langchain_openai import ChatOpenAI
 client = MCPClient.from_dict({
     "mcpServers": {
         "PostgreSQL": {
-            "url": "http://postgres-mcp-server:8100/mcp",
+            "url": "http://localhost:8100/mcp",
             "headers": {}
         }
     }
@@ -137,7 +156,7 @@ llm = ChatOpenAI(model="gpt-4")
 agent = MCPAgent(llm=llm, client=client)
 
 # Use it
-result = agent.run("Show me all employees in the Engineering department")
+result = agent.run("Show me all tables in the database")
 ```
 
 ### Important Note on LLM Selection
@@ -147,27 +166,19 @@ For best tool-calling results, use:
 - ✅ **Ollama:** llama3.1, llama3.2, mistral (Good)
 - ⚠️ **Avoid:** qwen2.5:7b (Limited tool calling support)
 
-## Sample Data
+## Example Usage
 
-The included PostgreSQL database comes with sample tables:
+Once connected, you can use the MCP tools to interact with your PostgreSQL database:
 
-```sql
--- Employees table
-CREATE TABLE employees (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100),
-  email VARCHAR(100),
-  department VARCHAR(50),
-  salary DECIMAL(10,2)
-);
+```python
+# List all tables
+agent.run("What tables are available in the database?")
 
--- Products table
-CREATE TABLE products (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100),
-  price DECIMAL(10,2),
-  stock INT
-);
+# Describe a table
+agent.run("Show me the structure of the users table")
+
+# Query data
+agent.run("SELECT * FROM users WHERE status='active' LIMIT 10")
 ```
 
 ## API Endpoints
@@ -186,12 +197,12 @@ CREATE TABLE products (
 # Install dependencies
 pip install fastapi uvicorn psycopg2-binary pydantic
 
-# Set environment variables
+# Set environment variables (or create .env file)
 export POSTGRES_HOST=localhost
 export POSTGRES_PORT=5432
-export POSTGRES_USER=demouser
-export POSTGRES_PASSWORD=demo123
-export POSTGRES_DB=demodb
+export POSTGRES_USER=your_username
+export POSTGRES_PASSWORD=your_password
+export POSTGRES_DB=your_database
 
 # Run server
 python server.py
@@ -210,9 +221,11 @@ docker compose up -d
 ### Connection Refused
 
 If you get connection errors, ensure:
-1. PostgreSQL is running: `docker compose ps`
-2. Port 8100 is not in use: `lsof -i :8100`
-3. Database is healthy: `curl http://localhost:8100/health`
+1. Your PostgreSQL server is running and accessible
+2. The `.env` file contains correct database credentials
+3. Port 8100 is not in use: `lsof -i :8100`
+4. The MCP server is healthy: `curl http://localhost:8100/health`
+5. If PostgreSQL is on localhost, try using `host.docker.internal` as the host
 
 ### Tool Calls Not Working
 
@@ -223,26 +236,32 @@ If the AI agent discovers tools but doesn't call them:
 
 ### Database Connection Issues
 
-Check database logs:
+Check MCP server logs:
 ```bash
-docker compose logs mcp-postgres-db
+docker compose logs postgres-mcp-server
 ```
 
-Verify connection manually:
+Test database connection manually from your host:
 ```bash
-docker exec -it mcp-postgres-db psql -U demouser -d demodb
+psql -h your_postgres_host -U your_username -d your_database
 ```
+
+Check if PostgreSQL allows connections from Docker:
+- Verify `pg_hba.conf` allows connections from Docker network
+- Ensure PostgreSQL is listening on the correct interface (check `postgresql.conf`)
 
 ## Security Considerations
 
-⚠️ **This is a development/demo setup. For production:**
+⚠️ **Important security guidelines:**
 
-1. **Change default credentials** in docker-compose.yml
-2. **Use environment variables** or secrets management
-3. **Implement authentication** for the MCP endpoint
-4. **Limit SQL query capabilities** (prevent DROP, DELETE, etc.)
-5. **Use read-only database users** when possible
-6. **Enable SSL/TLS** for database connections
+1. **Never commit `.env` file** - Add it to `.gitignore`
+2. **Use strong passwords** for PostgreSQL users
+3. **Use environment variables** or secrets management in production
+4. **Implement authentication** for the MCP endpoint
+5. **Limit SQL query capabilities** (prevent DROP, DELETE, etc.)
+6. **Use read-only database users** when possible
+7. **Enable SSL/TLS** for database connections
+8. **Restrict network access** to PostgreSQL server
 
 ## Integration with Main Application
 
