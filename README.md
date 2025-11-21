@@ -1,6 +1,21 @@
 # PostgreSQL MCP Server
 
-A standalone Model Context Protocol (MCP) server that provides PostgreSQL database access for AI agents and chat applications.
+![Build Status](https://github.com/YOUR_USERNAME/mcp-postgres-wrapper/workflows/Build%20%26%20Deploy%20PostgreSQL%20MCP%20Server/badge.svg)
+![Docker Image](https://img.shields.io/badge/docker-ghcr.io-blue)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+A production-ready, standalone Model Context Protocol (MCP) server that provides PostgreSQL database access for AI agents and chat applications.
+
+## 🎯 Production Ready
+
+This server has been thoroughly tested and includes:
+- ✅ Automated CI/CD pipeline with security scanning
+- ✅ Comprehensive health checks and monitoring
+- ✅ Kubernetes deployment manifests
+- ✅ Complete documentation and deployment guide
+
+**📚 For production deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## Overview
 
@@ -12,7 +27,10 @@ This MCP server implements the full MCP protocol (2024-11-05), allowing AI agent
 - ✅ **PostgreSQL Integration** - Execute queries, list tables, and describe schemas
 - ✅ **Dual Transport** - Supports both SSE and HTTP transports
 - ✅ **Docker Ready** - Includes Dockerfile and docker-compose.yml
+- ✅ **Kubernetes Ready** - Production-grade K8s manifests included
 - ✅ **Health Checks** - Built-in health monitoring
+- ✅ **CI/CD Pipeline** - Automated testing, building, and deployment
+- ✅ **Security Scanning** - Automated vulnerability detection with Trivy
 
 ## Available Tools
 
@@ -58,10 +76,10 @@ Get schema information for a specific table.
 
 ### 1. Configure Database Connection
 
-Copy the sample environment file and configure your PostgreSQL connection:
+Copy the example environment file and configure your PostgreSQL connection:
 
 ```bash
-cp env.sample .env
+cp env.example .env
 ```
 
 Edit `.env` with your PostgreSQL credentials:
@@ -117,10 +135,10 @@ The server requires a `.env` file with the following PostgreSQL connection setti
 | `POSTGRES_USER` | Database username | `postgres` |
 | `POSTGRES_PASSWORD` | Database password | `your_secure_password` |
 
-**Important:** Create your `.env` file from the provided `env.sample`:
+**Important:** Create your `.env` file from the provided `env.example`:
 
 ```bash
-cp env.sample .env
+cp env.example .env
 # Then edit .env with your actual credentials
 ```
 
@@ -195,7 +213,9 @@ agent.run("SELECT * FROM users WHERE status='active' LIMIT 10")
 
 ```bash
 # Install dependencies
-pip install fastapi uvicorn psycopg2-binary pydantic
+pip install -r requirements.txt
+# Or manually:
+# pip install fastapi uvicorn psycopg2-binary pydantic
 
 # Set environment variables (or create .env file)
 export POSTGRES_HOST=localhost
@@ -263,6 +283,44 @@ Check if PostgreSQL allows connections from Docker:
 7. **Enable SSL/TLS** for database connections
 8. **Restrict network access** to PostgreSQL server
 
+## 📦 Deployment
+
+### Quick Deploy Options
+
+1. **Docker Compose** (Development & Testing)
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Kubernetes** (Production)
+   ```bash
+   kubectl apply -f kubernetes/
+   ```
+
+3. **GitHub Container Registry** (Latest Image)
+   ```bash
+   docker pull ghcr.io/YOUR_USERNAME/mcp-postgres-wrapper:latest
+   ```
+
+For detailed deployment instructions including Kubernetes, CI/CD setup, and production best practices, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+
+## 🔄 CI/CD Pipeline
+
+This project includes a production-ready CI/CD pipeline that:
+- Runs automated tests and linting
+- Builds and pushes Docker images to GitHub Container Registry
+- Performs security scanning with Trivy
+- Creates semantic version tags automatically
+- Generates GitHub releases with deployment instructions
+
+**Recent Fixes:**
+- ✅ Fixed deprecated `actions/create-release` causing build failures
+- ✅ Fixed repository name case sensitivity for GHCR
+- ✅ Added comprehensive security scanning
+- ✅ Improved error handling and notifications
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
+
 ## Integration with Main Application
 
 This MCP server can be used standalone or integrated with the main MCP management system.
@@ -280,6 +338,31 @@ Name: PostgreSQL MCP Server
 Type: HTTP/HTTPS
 Category: database
 URL: http://postgres-mcp-server:8100/mcp
+```
+
+## 📋 Project Structure
+
+```
+mcp-postgres-wrapper/
+├── .github/
+│   ├── workflows/
+│   │   ├── build.yml        # Main CI/CD pipeline
+│   │   └── pr-check.yml     # PR quality checks
+│   └── dependabot.yml       # Automated dependency updates
+├── kubernetes/               # K8s deployment manifests
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── ingress.yaml
+│   ├── configmap.yaml
+│   └── secret.yaml
+├── server.py                # Main MCP server implementation
+├── Dockerfile               # Container image definition
+├── docker-compose.yml       # Local development setup
+├── requirements.txt         # Python dependencies
+├── env.example              # Environment variable template
+├── README.md                # This file
+├── DEPLOYMENT.md            # Detailed deployment guide
+└── CHANGELOG.md             # Version history and changes
 ```
 
 ## License
