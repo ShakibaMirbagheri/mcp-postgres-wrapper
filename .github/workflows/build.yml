@@ -62,7 +62,7 @@ jobs:
           python -c "import server; print('✓ Server module loaded successfully')"
 
       - name: Check Dockerfile syntax
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
